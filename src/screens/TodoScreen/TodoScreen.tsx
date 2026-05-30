@@ -1,29 +1,35 @@
+import { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   Text,
   View,
-} from 'react-native';
+} from "react-native";
 
-import { TodoItem } from '../../components/TodoItem/TodoItem';
-import { useTodos } from '../../hooks/useTodos';
+import { TodoItem } from "../../components/TodoItem/TodoItem";
+import { TaskProgressBar } from "../../components/TaskProgressBar/TaskProgressBar";
+import { TodoForm } from "../../forms/TodoForm/TodoForm";
+import { BottomTabInset } from "../../constants/theme";
 
-import styles from './styles';
+import { useTodosContext } from "../../context/TodosContext";
+
+import styles from "./styles";
 
 export const TodosScreen = () => {
-  const { todos, loading } = useTodos();
+  const [isFormVisible, setIsFormVisible] = useState(false);
+  const {
+    todos,
+    loading,
+    progressPercent,
+    addTodo,
+    toggleTodo,
+    deleteTodo,
+  } = useTodosContext();
 
   if (loading) {
     return (
-      <View
-        style={[
-          styles.container,
-          {
-            justifyContent: 'center',
-            alignItems: 'center',
-          },
-        ]}
-      >
+      <View style={[styles.container, styles.centered]}>
         <ActivityIndicator />
       </View>
     );
@@ -31,16 +37,52 @@ export const TodosScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Todo List</Text>
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Todo List</Text>
 
-      <FlatList
-        data={todos}
-        keyExtractor={item => item.id.toString()}
-        renderItem={({ item }) => (
-          <TodoItem todo={item} />
+          <Pressable
+            onPress={() => setIsFormVisible((value) => !value)}
+            style={({ pressed }) => [
+              styles.addButton,
+              pressed && styles.addButtonPressed,
+            ]}
+          >
+            <Text style={styles.addButtonText}>
+              {isFormVisible ? "×" : "+"}
+            </Text>
+          </Pressable>
+        </View>
+
+        {isFormVisible && (
+          <View style={styles.formContainer}>
+            <TodoForm
+              onSubmit={(data) => {
+                void addTodo(data.title, data.deadline, data.priority);
+                setIsFormVisible(false);
+              }}
+            />
+          </View>
         )}
-        showsVerticalScrollIndicator={false}
-      />
+
+        <FlatList
+          data={todos}
+          keyExtractor={(item) => item.id.toString()}
+          style={styles.list}
+          contentContainerStyle={{ paddingBottom: BottomTabInset + 24 }}
+          renderItem={({ item }) => (
+            <TodoItem
+              todo={item}
+              onToggle={() => toggleTodo(item.id)}
+              onDelete={() => deleteTodo(item.id)}
+            />
+          )}
+        />
+      </View>
+
+      <View style={styles.footer}>
+        <TaskProgressBar value={progressPercent} />
+      </View>
     </View>
   );
 };
